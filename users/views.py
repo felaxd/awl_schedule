@@ -4,11 +4,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from common.container import container
-from common.view_mixins import AuthMixin
 from users.serializers import UserDetailsSerializer
 
 
-class UserDetailsView(AuthMixin, GenericAPIView):
+class UserDetailsView(GenericAPIView):
     serializer_class = UserDetailsSerializer
 
     def get(self, request: Request) -> Response:

@@ -1,8 +1,8 @@
 from django.db import models
-from common.models import BaseDatabaseModel, TimestampMixin
+from common.models import BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin
 
 
-class Lecturer(BaseDatabaseModel, TimestampMixin):
+class Lecturer(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
 	
 	first_name = models.CharField(max_length=128)
 	last_name = models.CharField(max_length=128)
