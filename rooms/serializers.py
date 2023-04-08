@@ -1,3 +1,12 @@
-from django.shortcuts import render
+from rest_framework import serializers
 
-# Create your views here.
+from rooms.models import Room
+
+
+class RoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = (
+            "id",
+            "name",
+        )

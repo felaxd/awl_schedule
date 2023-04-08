@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +11,7 @@ from users.serializers import UserDetailsSerializer, GroupSerializer
 
 class UserDetailsView(GenericAPIView):
     serializer_class = UserDetailsSerializer
+    permission_classes = [IsAuthenticated]
 
     def get(self, request: Request) -> Response:
         """Returns logged in user details"""
@@ -34,6 +36,7 @@ class UserDetailsView(GenericAPIView):
 
 class GroupListView(GenericAPIView):
     serializer_class = GroupSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request: Request) -> Response:
         """Returns all groups"""
@@ -51,6 +54,7 @@ class GroupListView(GenericAPIView):
 
 class GroupDetailsView(GenericAPIView):
     serializer_class = GroupSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request: Request, group_id: int) -> Response:
         """Returns single group details"""
