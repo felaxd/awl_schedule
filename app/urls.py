@@ -16,14 +16,16 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from users.urls import auth_urlpatterns
+from users.urls import auth_urlpatterns, groups_urlpatterns
 
 api_urlpatterns = [
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("auth/", include(auth_urlpatterns)),
     path("users/", include("users.urls")),
+    path("groups/", include(groups_urlpatterns)),
     path("lecturers/", include("lecturers.urls")),
     path("courses/", include("courses.urls")),
+    path("rooms/", include("rooms.urls")),
     path("schedule/", include("schedule.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
 ]

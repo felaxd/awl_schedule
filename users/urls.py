@@ -8,6 +8,11 @@ auth_urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
 
+groups_urlpatterns = [
+    path("", views.GroupListView.as_view(), name="group-list"),
+    path("<int:group_id>/", views.GroupDetailsView.as_view(), name="group-details"),
+]
+
 urlpatterns = [
     path("details/", views.UserDetailsView.as_view(), name="user_details"),
 ]

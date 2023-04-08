@@ -8,5 +8,5 @@ class User(AbstractUser, BaseDatabaseModel, ModelDifferenceMixin):
 		return self.get_full_name()
 
 
-class Group(BaseGroup, BaseDatabaseModel, TimestampMixin):
+class Group(BaseGroup, BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
 	pass

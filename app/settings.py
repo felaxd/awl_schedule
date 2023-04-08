@@ -131,7 +131,8 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_SETTINGS": {
         "persistAuthorization": True,
         "displayRequestDuration": True,
-        "docExpansion": "list",
+        "docExpansion": "none",
+        "deepLinking": True,
     },
     "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",

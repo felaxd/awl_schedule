@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from django.db.models import QuerySet
+
 from users.models import Group
 
 from users.models import User
@@ -12,6 +14,10 @@ class UserSelector:
 
 
 class GroupSelector:
+    @staticmethod
+    def all() -> QuerySet[Group]:
+        return Group.objects.all()
+
     @staticmethod
     def get_by_id(pk: int) -> Group:
         return Group.objects.get(id=pk)
