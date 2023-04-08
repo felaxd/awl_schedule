@@ -1,12 +1,12 @@
-from django.contrib.auth.models import Group
+from users.models import Group
 from django.db import models
 
-from common.models import BaseDatabaseModel, TimestampMixin
+from common.models import BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin
 from lecturers.models import Lecturer
 
 
 # Create your models here.
-class Course(BaseDatabaseModel, TimestampMixin):
+class Course(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
     name = models.CharField(max_length=128, blank=False)
     groups = models.ManyToManyField(Group, through="GroupCourseThrough", related_name="courses")
     lecturers = models.ManyToManyField(Lecturer, through="LecturerCourseThrough", related_name="courses")

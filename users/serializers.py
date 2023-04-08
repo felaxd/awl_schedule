@@ -1,3 +1,4 @@
+from users.models import Group
 from rest_framework import serializers
 
 from users.models import User
@@ -18,4 +19,13 @@ class UserDetailsSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "last_login",
+        )
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = (
+            "id",
+            "name",
         )

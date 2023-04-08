@@ -2,6 +2,7 @@ from typing import cast, Type
 
 from dependencies import Injector
 
+from courses.services import CourseService
 from lecturers.services import LecturerService
 from users.services import UserService
 
@@ -27,6 +28,7 @@ class Container(Injector):
 
     user_service = cast(UserService, UserService)
     lecturer_service = cast(LecturerService, LecturerService)
+    course_service = cast(CourseService, CourseService)
 
 
 def container() -> Type[Container]:

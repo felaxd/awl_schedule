@@ -1,4 +1,4 @@
-from django.contrib.auth.models import Group
+from users.models import Group
 from django.db import models
 from common.models import BaseDatabaseModel, TimestampMixin
 from courses.models import Course
