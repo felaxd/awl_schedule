@@ -5,6 +5,7 @@ from dependencies import Injector
 from courses.services import CourseService
 from lecturers.services import LecturerService
 from rooms.services import RoomService
+from schedule.services import ScheduleBlockService
 from users.services import UserService, GroupService
 
 
@@ -32,6 +33,7 @@ class Container(Injector):
     lecturer_service = cast(LecturerService, LecturerService)
     course_service = cast(CourseService, CourseService)
     room_service = cast(RoomService, RoomService)
+    schedule_block_service = cast(ScheduleBlockService, ScheduleBlockService)
 
 
 def container() -> Type[Container]:

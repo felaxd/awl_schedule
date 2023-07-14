@@ -1,6 +1,6 @@
 from users.models import Group
 from django.db import models
-from common.models import BaseDatabaseModel, TimestampMixin
+from common.models import BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin
 from courses.models import Course
 from lecturers.models import Lecturer
 from rooms.models import Room
@@ -21,7 +21,7 @@ class Schedule(BaseDatabaseModel, TimestampMixin):
         ordering = ("-created_at",)
 
 
-class ScheduleBlock(BaseDatabaseModel, TimestampMixin):
+class ScheduleBlock(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
     course_name = models.CharField(max_length=128)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, related_name="schedule_blocks", null=True)
     start = models.DateTimeField()
