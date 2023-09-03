@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    env_file:
+      - ./awl_backend/.envs/.postgres.env
+  backend:
+    build: ./awl_backend
+    volumes:
+      - ./awl_backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./awl_backend/.envs/.postgres.env
+      - ./awl_backend/.envs/.local.env
+    depends_on:
+      - db
+  frontend:
+    build: ./awl_frontend
+    volumes:
+      - ./awl_frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: npm start
+    depends_on:
+      - backend

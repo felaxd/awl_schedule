@@ -1,0 +1,6 @@
+# ENVS
+.envs/.local.env
+
+# IDE
+venv/*
+.idea/*

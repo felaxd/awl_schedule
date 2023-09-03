@@ -1,10 +1,2 @@
-# ENVS
-.envs/.local.env
-
-# IDE
-venv/*
-.idea/*
-
 # DB / media
 data/*
-
