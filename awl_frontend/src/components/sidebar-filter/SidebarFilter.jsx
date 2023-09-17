@@ -19,10 +19,12 @@ export default function SidebarFilter({filter_title, options}) {
         <div className="sidebar-filter">
             <span className="filter-title">{filter_title}</span>
             <form>
-                {options.map((option) =>
-                    <div>
-                        <label>
+                {options.map((option, i) =>
+                    <div key={i} className="filter-form-input-container">
+                        <label key={i} className="filter-form-input-label">
                             <input
+                                key={i}
+                                className="filter-form-input"
                                 type="checkbox"
                                 value={option.id}
                                 onChange={handleOptionChange}
