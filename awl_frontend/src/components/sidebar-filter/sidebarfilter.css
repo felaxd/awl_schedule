@@ -1,0 +1,26 @@
+.sidebar-filter {
+  margin-top: 20px;
+}
+
+.filter-title {
+  font-size: 13px;
+  color: rgb(161, 148, 148);
+}
+
+.filter-choice {
+  font-size: 14px;
+}
+
+.show-more:after {
+  display: table;
+  width: 50%;
+  content: "▼";
+  text-align: center;
+}
+
+.show-less:after {
+  display: table;
+  width: 50%;
+  content: "▲";
+  text-align: center;
+}
