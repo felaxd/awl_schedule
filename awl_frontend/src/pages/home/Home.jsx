@@ -5,6 +5,7 @@ import 'moment/locale/pl';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import {views} from "react-big-calendar/lib/utils/constants";
 import Sidebar from "../../components/sidebar/Sidebar";
+import CalendarEvent from "../../components/calendar-event/CalendarEvent";
 import React from "react";
 import {getSchedule} from "../../services/schedule/ScheduleService";
 
@@ -25,9 +26,14 @@ export default function Home() {
             setSchedule(response.map(block => (
                 {
                     id: block.id,
-                    title: block.course_name,
+                    title: `${block.course_name} - ${block.type}`,
                     start: new Date(block.start),
                     end: new Date(block.end),
+                    lecturers: block.lecturers,
+                    rooms: block.rooms,
+                    groups: block.groups,
+                    type: block.type,
+                    course_name: block.course_name,
                 }
             )));
         }
@@ -49,6 +55,9 @@ export default function Home() {
                   defaultView={views.WEEK}
                   style={{ height: 700 }}
                   messages={messages}
+                  components={{
+                      event: CalendarEvent
+                  }}
               />
           </div>
       </>

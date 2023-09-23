@@ -1,3 +1,3 @@
 export const config = {
-    API_URL: 'http://localhost:8000/api',
+    API_URL: 'http://ziemowit.ddns.net:8000/api',
 }
