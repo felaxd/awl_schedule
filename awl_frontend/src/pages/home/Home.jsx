@@ -7,7 +7,6 @@ import {views} from "react-big-calendar/lib/utils/constants";
 import Sidebar from "../../components/sidebar/Sidebar";
 import CalendarEvent from "../../components/calendar-event/CalendarEvent";
 import React from "react";
-import {getSchedule} from "../../services/schedule/ScheduleService";
 
 const localizer = momentLocalizer(moment)
 
@@ -16,32 +15,12 @@ const messages={
       next: 'następny',
       today: 'dziś',
 }
-
+export const ScheduleContext = React.createContext(null);
 export default function Home() {
     const [schedule, setSchedule] = React.useState([]);
 
-    React.useEffect(() => {
-        const getFullSchedule = async () => {
-            const response = await getSchedule();
-            setSchedule(response.map(block => (
-                {
-                    id: block.id,
-                    title: `${block.course_name} - ${block.type}`,
-                    start: new Date(block.start),
-                    end: new Date(block.end),
-                    lecturers: block.lecturers,
-                    rooms: block.rooms,
-                    groups: block.groups,
-                    type: block.type,
-                    course_name: block.course_name,
-                }
-            )));
-        }
-        getFullSchedule();
-    }, []);
-
   return (
-      <>
+      <ScheduleContext.Provider value={{schedule: schedule, setSchedule: setSchedule}}>
           <Sidebar />
           <div className="calendar">
               <Calendar
@@ -60,7 +39,7 @@ export default function Home() {
                   }}
               />
           </div>
-      </>
+      </ScheduleContext.Provider>
 
   );
 }
