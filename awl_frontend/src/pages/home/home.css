@@ -1,5 +1,6 @@
 .calendar {
   flex: 4;
+  margin-left: 10px;
 }
 
 /* disable allDay row in calendar view as it is not implemented into library */

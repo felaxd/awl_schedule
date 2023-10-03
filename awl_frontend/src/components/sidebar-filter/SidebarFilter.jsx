@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import "./sidebarfilter.css";
-import { useFormContext } from "react-hook-form"
-import { HandleFormSubmit } from "../sidebar/Sidebar"
+import {useFormContext} from "react-hook-form";
 
 export default function SidebarFilter({filter_title, form_key, options}) {
-    const { register, handleSubmit } = useFormContext()
+    const { register} = useFormContext();
     const [showMore, setShowMore] = useState(false);
     const showButton = options.length > 5;
 
@@ -21,7 +20,6 @@ export default function SidebarFilter({filter_title, form_key, options}) {
                             name={form_key}
                             type="checkbox"
                             value={option.id}
-                            onChange={handleSubmit(HandleFormSubmit)}
                         />
                         {option.name}
                     </label>

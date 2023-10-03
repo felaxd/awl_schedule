@@ -7,6 +7,8 @@ import {views} from "react-big-calendar/lib/utils/constants";
 import Sidebar from "../../components/sidebar/Sidebar";
 import CalendarEvent from "../../components/calendar-event/CalendarEvent";
 import React from "react";
+import {getSchedule} from "../../services/schedule/ScheduleService";
+import {FormProvider, useForm} from "react-hook-form"
 
 const localizer = momentLocalizer(moment)
 
@@ -17,11 +19,38 @@ const messages={
 }
 export const ScheduleContext = React.createContext(null);
 export default function Home() {
+    const filterForm = useForm(
+        {defaultValues: {groups: null, lecturers: null, rooms: null}}
+    )
     const [schedule, setSchedule] = React.useState([]);
 
+    function handleFormSubmit(data) {
+        const getFullSchedule = async (data) => {
+            const response = await getSchedule(data);
+            setSchedule(response.map(block => (
+                {
+                    id: block.id,
+                    title: `${block.course_name} - ${block.type}`,
+                    start: new Date(block.start),
+                    end: new Date(block.end),
+                    lecturers: block.lecturers,
+                    rooms: block.rooms,
+                    groups: block.groups,
+                    type: block.type,
+                    course_name: block.course_name,
+                }
+            )));
+        }
+        getFullSchedule(data);
+    }
+
   return (
-      <ScheduleContext.Provider value={{schedule: schedule, setSchedule: setSchedule}}>
-          <Sidebar />
+      <>
+          <FormProvider {...filterForm}>
+              <form onSubmit={filterForm.handleSubmit(handleFormSubmit)}>
+              <Sidebar />
+              </form>
+          </FormProvider>
           <div className="calendar">
               <Calendar
                   localizer={localizer}
@@ -39,7 +68,6 @@ export default function Home() {
                   }}
               />
           </div>
-      </ScheduleContext.Provider>
-
+    </>
   );
 }
