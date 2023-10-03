@@ -1,6 +1,7 @@
 from typing import Union, Type
 from uuid import UUID
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 
 from common.container import container
 from schedule.selectors import ScheduleBlockSelector
-from schedule.serializers import ScheduleBlockSerializer, ScheduleBlockCreateSerializer
+from schedule.serializers import ScheduleBlockSerializer, ScheduleBlockCreateSerializer, ScheduleFilterQuerySerializer
 
 
 class ScheduleBlockListView(GenericAPIView):
@@ -22,9 +23,13 @@ class ScheduleBlockListView(GenericAPIView):
             return self.create_serializer_class
         return self.serializer_class
 
+    @extend_schema(parameters=[ScheduleFilterQuerySerializer, ])
     def get(self, request: Request) -> Response:
         """Returns list of schedule blocks"""
-        result = ScheduleBlockSelector.all()
+        query = ScheduleFilterQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+
+        result = ScheduleBlockSelector.filtered(**query.validated_data)
         return Response(self.get_serializer(result, many=True).data, status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:

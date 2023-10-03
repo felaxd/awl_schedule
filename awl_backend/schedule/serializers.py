@@ -1,10 +1,15 @@
 from rest_framework import serializers
 
-from lecturers.models import Lecturer
 from lecturers.serializers import LecturerSerializer
 from rooms.serializers import RoomSerializer
 from schedule.models import ScheduleBlock, LecturerScheduleBlockThrough
 from users.serializers import GroupSerializer
+
+
+class ScheduleFilterQuerySerializer(serializers.Serializer):
+    groups = serializers.ListField(child=serializers.IntegerField(), allow_null=True, required=False)
+    lecturers = serializers.ListField(child=serializers.UUIDField(), allow_null=True, required=False)
+    rooms = serializers.ListField(child=serializers.UUIDField(), allow_null=True, required=False)
 
 
 class ScheduleBlockLecturerCreateSerializer(serializers.ModelSerializer):
