@@ -4,3 +4,6 @@
 # IDE
 venv/*
 .idea/*
+
+# test file
+test.py

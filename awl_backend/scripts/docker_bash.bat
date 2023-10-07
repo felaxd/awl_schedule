@@ -1,1 +1,1 @@
-docker exec -it awl_backend-web-1 /bin/bash
+docker exec -it app-backend-1 /bin/bash
