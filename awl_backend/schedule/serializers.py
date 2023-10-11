@@ -7,6 +7,8 @@ from users.serializers import GroupSerializer
 
 
 class ScheduleFilterQuerySerializer(serializers.Serializer):
+    date_from = serializers.DateField(allow_null=True, required=False)
+    date_to = serializers.DateField(allow_null=True, required=False)
     groups = serializers.ListField(child=serializers.IntegerField(), allow_null=True, required=False)
     lecturers = serializers.ListField(child=serializers.UUIDField(), allow_null=True, required=False)
     rooms = serializers.ListField(child=serializers.UUIDField(), allow_null=True, required=False)
