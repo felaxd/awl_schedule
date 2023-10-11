@@ -33,13 +33,13 @@ export default function Sidebar() {
     }, []);
     return (
         <div className="sidebar">
-            <span className="sidebar-description">Filtrowanie</span>
+            <div className="sidebar-description">Filtrowanie</div>
+            <button type="submit" className="sidebar-submit-button">Zatwierdź</button>
             <div className="sidebar-filters">
                 {groups && <SidebarFilter filter_title="Grupy" form_key="groups" options={groups}/>}
                 {lecturers && <SidebarFilter filter_title="Prowadzący" form_key="lecturers" options={lecturers}/>}
                 {rooms && <SidebarFilter filter_title="Sale" form_key="rooms" options={rooms}/>}
             </div>
-            <button type="submit">Zatwierdź</button>
         </div>
     );
 }

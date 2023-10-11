@@ -9,6 +9,17 @@
   font-size: 25px;
 }
 
+.sidebar-submit-button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
+  background-color: #3174ad;
+  border-color: #3174ad;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+}
+
 .sidebar-filters {
   margin-top: 20px;
   font-size: 15px;
