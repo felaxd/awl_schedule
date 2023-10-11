@@ -18,7 +18,7 @@ class RoomListView(GenericAPIView):
 
     def get(self, request: Request) -> Response:
         """Returns all rooms"""
-        groups = RoomSelector.all()
+        groups = RoomSelector.all().order_by("name")
         return Response(self.get_serializer(groups, many=True).data, status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:

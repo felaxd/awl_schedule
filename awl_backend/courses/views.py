@@ -1,4 +1,3 @@
-from typing import Union, Type
 from uuid import UUID
 
 from rest_framework import status
@@ -11,8 +10,6 @@ from common.container import container
 from courses.selectors import CourseSelector
 from courses.serializers import CourseSerializer, CourseDetailSerializer, CourseGroupRelationSerializer, \
     CourseLecturerRelationSerializer
-from lecturers.selectors import LecturerSelector
-from lecturers.serializers import LecturerSerializer, LecturerDetailSerializer
 
 
 class CourseListView(GenericAPIView):

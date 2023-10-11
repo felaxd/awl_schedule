@@ -24,7 +24,7 @@ class LecturerListView(GenericAPIView):
 
     def get(self, request: Request) -> Response:
         """Returns list of lecturers"""
-        result = LecturerSelector.all()
+        result = LecturerSelector.all().order_by("last_name")
         return Response(self.get_serializer(result, many=True).data, status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:
