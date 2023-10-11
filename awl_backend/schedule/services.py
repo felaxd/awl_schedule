@@ -310,7 +310,7 @@ class ExcelScheduleService:
         worksheet = single_day_schedule_info["worksheet"]
         bg_colour = starting_cell.fill.fgColor.rgb
 
-        end_cell_row = starting_cell.row + 2
+        end_cell_row = starting_cell.row + 1
         while True:
             if end_cell_row > single_day_schedule_info["ending_cell"].row:
                 raise ValidationError("Błąd podczas próby pobrania wielkości modułu")
@@ -327,7 +327,7 @@ class ExcelScheduleService:
             if bg_colour != "00000000" and possible_start_of_next_module.fill.fgColor.rgb != bg_colour:
                 break
 
-            end_cell_row += 3
+            end_cell_row += 1
 
         end_cell_column = starting_cell.column + 0
         while True:
@@ -401,7 +401,7 @@ class ExcelScheduleService:
                 lecturer_room = (
                     cls.get_cell(worksheet, row=cell.row, column=ending_cell.column).value
                     or ending_cell.value
-                    or ""
+                    or "brak"
                 )
                 lecturers.append(
                     {
@@ -422,7 +422,7 @@ class ExcelScheduleService:
         )
         for row in room_rows:
             cell = row[0]
-            room_name: Optional[str] = f"{cell.value or ''}"
+            room_name: str = f"{cell.value or ''}"
             if not room_name:
                 continue
             rooms.append(room_name)
@@ -482,9 +482,18 @@ class ScheduleService:
 
         progress_step_par_day = 80 / len(excel_schedule_info["schedule_days"])
         for day_schedule_info in excel_schedule_info["schedule_days"]:
+            date = day_schedule_info['date']
             if error := day_schedule_info.get("error", None):
-                log.error(f"{day_schedule_info['date']}: bład ({error})")
+                log.error(f"{date}: bład ({error})")
                 continue
+
+            group_names = [group["name"] for group in day_schedule_info["groups"]]
+            active_groups_in_schedule = Group.objects.filter(name__in=group_names)
+            deleted_schedule_blocks = ScheduleBlock.objects.filter(
+                groups__in=active_groups_in_schedule,
+                start__date=date,
+                end__date=date
+            ).delete()[1].get("schedule.ScheduleBlock", 0)
 
             added_blocks = 0
             added_groups = 0
@@ -573,7 +582,7 @@ class ScheduleService:
                 "prowadzący": added_lecturers,
                 "kursy": added_courses
             }
-            log.debug(f"{day_schedule_info['date']}: nowe {log_dict}")
+            log.debug(f"{date}: usunięto {deleted_schedule_blocks} / nowe {log_dict}")
             Schedule.objects.filter(id=schedule.id).update(progress=F("progress") + progress_step_par_day)
 
         Schedule.objects.filter(id=schedule.id).update(status="FINISHED")
