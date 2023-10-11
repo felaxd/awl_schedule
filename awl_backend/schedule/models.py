@@ -1,4 +1,6 @@
-from users.models import Group
+from django.utils import timezone
+
+from users.models import Group, User
 from django.db import models
 from common.models import BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin
 from courses.models import Course
@@ -8,10 +10,14 @@ from rooms.models import Room
 
 # Create your models here.
 class Schedule(BaseDatabaseModel, TimestampMixin):
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name="schedules")
     name = models.CharField(max_length=128)
     status = models.CharField(max_length=32, default="NEW")
 
     file = models.FileField(upload_to="schedule/uploads/")
+    year = models.IntegerField(default=timezone.now().year, blank=False)
+    month = models.IntegerField(default=timezone.now().month, blank=False)
+    worksheet_name = models.CharField(max_length=128, blank=False)
     progress = models.IntegerField()
 
     def __str__(self) -> str:
@@ -22,6 +28,10 @@ class Schedule(BaseDatabaseModel, TimestampMixin):
 
 
 class ScheduleBlock(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.SET_NULL, related_name="schedule_blocks", null=True, blank=True
+    )
+    is_public = models.BooleanField(default=False)
     course_name = models.CharField(max_length=128)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, related_name="schedule_blocks", null=True)
     start = models.DateTimeField()

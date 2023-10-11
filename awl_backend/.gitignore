@@ -5,5 +5,7 @@
 venv/*
 .idea/*
 
+schedule/uploads/*
+
 # test file
 test.py

@@ -22,3 +22,10 @@ HOUR_BLOCK_START_TIMESPANS = {
     15: (time(hour=19, minute=30, second=0), time(hour=20, minute=15, second=0)),
     16: (time(hour=20, minute=15, second=0), time(hour=21, minute=0, second=0)),
 }
+
+DEFAULT_MODULE_TYPE = "wykład"
+MODULE_TYPES_TUPLE = [
+    ("-Ć", "ćwiczenia"),
+    ("-L", "laboratorium"),
+    ("-F", "fakultet"),
+]

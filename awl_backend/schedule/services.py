@@ -1,13 +1,16 @@
 import calendar
+import logging
 from dataclasses import dataclass
-from datetime import datetime, date, time
+from datetime import datetime, date
 from typing import Dict, Any, Optional, List, Union, Tuple
 from uuid import UUID
+
+from django.db.models import F
 from openpyxl import Workbook
 
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from openpyxl.cell import Cell
 from openpyxl.reader.excel import load_workbook
 from openpyxl.styles.borders import DEFAULT_BORDER
@@ -18,10 +21,13 @@ from common.validators import validate_user_permission
 from courses.models import Course
 from lecturers.models import Lecturer
 from rooms.models import Room
-from schedule.consts import AMOUNT_OF_TIME_BLOCK_PER_DAY, DAY_START_HOUR, HOUR_BLOCK_START_TIMESPANS
-from schedule.models import ScheduleBlock
+from schedule.consts import AMOUNT_OF_TIME_BLOCK_PER_DAY, HOUR_BLOCK_START_TIMESPANS, DEFAULT_MODULE_TYPE, \
+    MODULE_TYPES_TUPLE
+from schedule.models import ScheduleBlock, Schedule, LecturerScheduleBlockThrough
 from schedule.selectors import ScheduleBlockSelector
 from users.models import User, Group
+
+log = logging.getLogger("schedule")
 
 
 @dataclass
@@ -175,9 +181,8 @@ class ExcelScheduleService:
         for day in range(1, last_day_of_month):
             try:
                 schedule_days.append(self.get_single_day_schedule_info(ws, year, month, day))
-            except ValidationError:
-                continue
-            break
+            except ValidationError as ex:
+                schedule_days.append({"date": date(day=day, month=month, year=year), "error": f"{ex}"})
 
         if not schedule_days:
             raise ValidationError("Brak dni w arkuszu dla podenego miesiąca")
@@ -278,7 +283,7 @@ class ExcelScheduleService:
                     )
                     for column in cells_to_exclude:
                         single_day_schedule_info["excluded_cells"].extend(column)
-                    print(schedule_block)
+
                     current_row = schedule_block["ending_cell"].row + 1
                 else:
                     current_row += 3
@@ -291,6 +296,7 @@ class ExcelScheduleService:
 
         return {
             "name": starting_cell.value,
+            "type": self.get_module_type_from_name(starting_cell.value),
             "start": start,
             "end": end,
             "lecturers": self.get_module_lecturers(worksheet, starting_cell, ending_cell),
@@ -345,13 +351,26 @@ class ExcelScheduleService:
         return starting_cell, self.get_cell(worksheet, row=end_cell_row, column=end_cell_column)
 
     @classmethod
+    def get_module_type_from_name(cls, module_name: Optional[str]) -> str:
+        if module_name:
+            module_name = module_name.replace(" ", "")
+            for type_tuple in MODULE_TYPES_TUPLE:
+                if type_tuple[0] in module_name:
+                    return type_tuple[1]
+
+        return DEFAULT_MODULE_TYPE
+
+    @classmethod
     def get_module_times(
         cls, single_day_schedule_info: Dict[str, Any], starting_cell: Cell, ending_cell: Cell
-    ) -> Tuple[time, time]:
+    ) -> Tuple[datetime, datetime]:
         schedule_starting_cell: Cell = single_day_schedule_info["starting_cell"]
         start_hour = starting_cell.column - schedule_starting_cell.column
         end_hour = start_hour + (ending_cell.column - starting_cell.column)
-        return HOUR_BLOCK_START_TIMESPANS[start_hour][0], HOUR_BLOCK_START_TIMESPANS[end_hour][1]
+        return (
+            datetime.combine(single_day_schedule_info["date"], HOUR_BLOCK_START_TIMESPANS[start_hour][0]),
+            datetime.combine(single_day_schedule_info["date"], HOUR_BLOCK_START_TIMESPANS[end_hour][1])
+        )
 
     @classmethod
     def get_module_groups(cls, group_list: List[Dict[str, Any]], starting_cell: Cell, ending_cell: Cell) -> List[str]:
@@ -435,3 +454,127 @@ class ExcelScheduleService:
                 elif f"{value}" in f"{cell_value}":
                     return cell
         return None
+
+
+@dataclass
+class ScheduleService:
+    excel_schedule_service: ExcelScheduleService
+
+    @transaction.atomic
+    def update_schedule_from_excel(self, schedule: Schedule) -> Dict[str, Any]:
+        result = {
+            "added_blocks": [],
+            "added_groups": [],
+            "added_lecturers": [],
+            "added_rooms": [],
+            "added_courses": [],
+            "errors": []
+        }
+        Schedule.objects.filter(id=schedule.id).update(progress=0, status="ONGOING")
+
+        excel_schedule_info = self.excel_schedule_service.init_excel_worksheet(
+            path=schedule.file.path,
+            worksheet=schedule.worksheet_name,
+            year=schedule.year,
+            month=schedule.month
+        )
+        Schedule.objects.filter(id=schedule.id).update(progress=20)
+
+        progress_step_par_day = 80 / len(excel_schedule_info["schedule_days"])
+        for day_schedule_info in excel_schedule_info["schedule_days"]:
+            if error := day_schedule_info.get("error", None):
+                log.error(f"{day_schedule_info['date']}: bład ({error})")
+                continue
+
+            added_blocks = 0
+            added_groups = 0
+            added_lecturers = 0
+            added_rooms = 0
+            added_courses = 0
+            for _block in self.excel_schedule_service.get_schedule_for_single_day(day_schedule_info):
+                try:
+                    schedule_block = ScheduleBlock(
+                        schedule=schedule,
+                        is_public=False,
+                        course_name=_block["name"],
+                        course=None,
+                        start=_block["start"],
+                        end=_block["end"],
+                        type=_block["type"],
+                    )
+                    course, course_created = Course.objects.get_or_create(name=_block["name"])
+                    if course_created:
+                        django_log_action(user=schedule.creator, obj=course, action_flag=ADDITION)
+                        added_courses += 1
+                        result["added_courses"].append(course)
+
+                    schedule_block.course = course
+
+                    schedule_block_groups = []
+                    for _group in _block["groups"]:
+                        group, group_created = Group.objects.get_or_create(name=_group)
+                        if group_created:
+                            django_log_action(user=schedule.creator, obj=group, action_flag=ADDITION)
+                            added_groups += 1
+                            result["added_groups"].append(group)
+
+                        schedule_block_groups.append(group)
+
+                    schedule_block_rooms = []
+                    for _room in _block["rooms"]:
+                        room, room_created = Room.objects.get_or_create(name=_room)
+                        if room_created:
+                            django_log_action(user=schedule.creator, obj=room, action_flag=ADDITION)
+                            added_rooms += 1
+                            result["added_rooms"].append(room)
+
+                        schedule_block_rooms.append(room)
+
+                    schedule_block_lecturers = []
+                    for _lecturer in _block["lecturers"]:
+                        lecturer, lecturer_created = Lecturer.objects.get_or_create(last_name=_lecturer["name"])
+                        if lecturer_created:
+                            django_log_action(user=schedule.creator, obj=lecturer, action_flag=ADDITION)
+                            added_lecturers += 1
+                            result["added_lecturers"].append(lecturer)
+
+                        room, room_created = Room.objects.get_or_create(name=_lecturer["room"])
+                        # jakby sala nie była stworzona w poprzednim forze
+                        if room_created:
+                            django_log_action(user=schedule.creator, obj=room, action_flag=ADDITION)
+                            added_rooms += 1
+                            result["added_rooms"].append(room)
+
+                        schedule_block_lecturers.append(
+                            LecturerScheduleBlockThrough(schedule_block=schedule_block, lecturer=lecturer, room=room)
+                        )
+
+                    schedule_block.save()
+                    schedule_block.rooms.set(schedule_block_rooms)
+                    schedule_block.groups.set(schedule_block_groups)
+                    LecturerScheduleBlockThrough.objects.bulk_create(schedule_block_lecturers)
+                    added_blocks += 1
+                    result["added_blocks"].append(schedule_block)
+                    django_log_action(user=schedule.creator, obj=schedule_block, action_flag=ADDITION)
+                except IntegrityError:
+                    result["errors"].append(
+                        f"{_block['starting_cell'].coordinate}:{_block['ending_cell'].coordinate} Błąd odczytu wagonika"
+                    )
+                except Exception as ex:
+                    log.error(ex)
+                    result["errors"].append(
+                        f"{_block['starting_cell'].coordinate}:{_block['ending_cell'].coordinate} Nieznany błąd"
+                    )
+
+            log_dict = {
+                "wagoniki": added_blocks,
+                "grupy": added_groups,
+                "sale": added_rooms,
+                "prowadzący": added_lecturers,
+                "kursy": added_courses
+            }
+            log.debug(f"{day_schedule_info['date']}: nowe {log_dict}")
+            Schedule.objects.filter(id=schedule.id).update(progress=F("progress") + progress_step_par_day)
+
+        Schedule.objects.filter(id=schedule.id).update(status="FINISHED")
+        return result
