@@ -6,7 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import {views} from "react-big-calendar/lib/utils/constants";
 import Sidebar from "../../components/sidebar/Sidebar";
 import CalendarEvent from "../../components/calendar-event/CalendarEvent";
-import React from "react";
+import React, {useEffect} from "react";
 import {getSchedule} from "../../services/schedule/ScheduleService";
 import {FormProvider, useForm} from "react-hook-form"
 
@@ -17,16 +17,34 @@ const messages={
       next: 'następny',
       today: 'dziś',
 }
-export const ScheduleContext = React.createContext(null);
 export default function Home() {
     const filterForm = useForm(
         {defaultValues: {groups: null, lecturers: null, rooms: null}}
     )
     const [schedule, setSchedule] = React.useState([]);
+    const [selectedWeek, setSelectedWeek] = React.useState(null);
+    const [scheduleQuery, setScheduleQuery] = React.useState({});
 
-    function handleFormSubmit(data) {
-        const getFullSchedule = async (data) => {
-            const response = await getSchedule(data);
+    function getWeekFromDate(date) {
+        const startOfWeek = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate() - date.getDay() + 1
+        )
+        const endOfWeek = new Date(
+            date.getFullYear(), date.getMonth(), startOfWeek.getDate() + 6
+        )
+        return {
+            date_from: moment(startOfWeek).format("YYYY-MM-DD"),
+            date_to: moment(endOfWeek).format("YYYY-MM-DD")
+        }
+    }
+    function onWeekChange(selected_date) {
+        setSelectedWeek(getWeekFromDate(selected_date))
+    }
+    const getFullSchedule = async () => {
+        if ("groups" in scheduleQuery || "rooms" in scheduleQuery || "lecturers" in scheduleQuery) {
+            const response = await getSchedule(scheduleQuery);
             setSchedule(response.map(block => (
                 {
                     id: block.id,
@@ -41,8 +59,20 @@ export default function Home() {
                 }
             )));
         }
-        getFullSchedule(data);
     }
+    function handleFormSubmit(data) {
+        let week_query = selectedWeek
+        if (selectedWeek === null) week_query = getWeekFromDate(new Date())
+        setScheduleQuery({...scheduleQuery, ...data, ...week_query})
+    }
+
+    useEffect(() => {
+        setScheduleQuery({...scheduleQuery, ...selectedWeek})
+    },[selectedWeek])
+
+    useEffect(() => {
+        getFullSchedule();
+    },[scheduleQuery])
 
   return (
       <>
@@ -59,6 +89,7 @@ export default function Home() {
                   showAllEvents={true}
                   min={new Date(0, 0, 0, 8, 0, 0)}
                   max={new Date(0, 0, 0, 22, 0, 0)}
+                  onNavigate={onWeekChange}
                   views={[views.WEEK]}
                   defaultView={views.WEEK}
                   style={{ height: 700 }}
