@@ -1,0 +1,59 @@
+.rbc-custom-event {
+}
+
+.course-info-container {
+  margin-bottom: 5px;
+}
+
+.course-name {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.course-type {
+  float: left;
+  font-size: 0.9vh;
+  margin-right: 10px;
+}
+
+.group-container {
+  flex: 4;
+}
+
+.group-names {
+  margin-left: 10px;
+  font-size: 0.9vh;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.room-container {
+  margin-bottom: 5px;
+}
+
+.lecturer-room-container {
+  display: flex;
+}
+
+.lecturer-name, .lecturer-room, .room-name {
+  font-size: 0.4vw;
+}
+
+.lecturer-name {
+  width: 75%;
+}
+
+.lecturer-room {
+  float: left;
+  width: 25%;
+  text-align: right;
+}
+
+.standalone-room-container {
+  text-align: right;
+}
+
+.room-name {
+}

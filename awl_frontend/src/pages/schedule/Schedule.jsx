@@ -10,6 +10,7 @@ import React, {useEffect} from "react";
 import {getSchedule, getQueryParams} from "../../services/schedule/ScheduleService";
 import {FormProvider, useForm} from "react-hook-form"
 import {useLocation, useNavigate} from "react-router-dom";
+import CalendarEventModal from "../../components/calendar-event-modal/CalendarEventModal";
 
 const localizer = momentLocalizer(moment)
 
@@ -33,6 +34,9 @@ export default function Schedule() {
     const [schedule, setSchedule] = React.useState([]);
     const [selectedWeek, setSelectedWeek] = React.useState(null);
     const [scheduleQuery, setScheduleQuery] = React.useState({});
+
+    const [selectedEvent, setSelectedEvent] = React.useState(null)
+    const [modalState, setModalState] = React.useState(false)
 
     function getWeekFromDate(date) {
         const startOfWeek = new Date(
@@ -123,8 +127,14 @@ export default function Schedule() {
         navigate("/schedule?" + getQueryParams(query))
     }
 
+    function handleSelectedEvent (event) {
+        setSelectedEvent(event)
+        setModalState(true)
+    }
+
   return (
       <div className="schedule-container">
+          {selectedEvent && <CalendarEventModal event={selectedEvent} modalState={modalState} setModalState={setModalState}/>}
           <FormProvider {...filterForm}>
               <form onSubmit={filterForm.handleSubmit(handleFormSubmit)}>
               <Sidebar />
@@ -140,6 +150,7 @@ export default function Schedule() {
                   max={new Date(0, 0, 0, 22, 0, 0)}
                   date={selectedWeek?.date_from ?? new Date()}
                   onNavigate={onWeekChange}
+                  onSelectEvent={handleSelectedEvent}
                   views={[views.WEEK]}
                   defaultView={views.WEEK}
                   style={{ height: 700 }}
