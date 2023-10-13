@@ -32,7 +32,7 @@ class ScheduleBlockSelector:
             qs = qs.filter(lecturers__in=lecturers)
         if rooms:
             qs = qs.filter(rooms__in=rooms)
-        return qs
+        return qs.distinct()
 
     @staticmethod
     def get_by_id(block_id: UUID) -> ScheduleBlock:
