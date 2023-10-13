@@ -58,7 +58,7 @@ export default function Schedule() {
         if (selected_options.length) {
             let weekQuery = selectedWeek
             if (selectedWeek === null) weekQuery = getWeekFromDate(
-                new Date(urlParams.get("date_from")) ?? new Date()
+                urlParams.get("date_from") ? new Date(urlParams.get("date_from")) : new Date()
             )
             let dataQuery = {
                 groups: [], lecturers: [], rooms: []
