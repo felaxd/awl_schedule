@@ -1,15 +1,22 @@
-import Home from "./pages/home/Home";
 import './App.css';
 import Topbar from "./components/topbar/Topbar";
+import Home from "./pages/home/Home";
+import Footer from "./components/footer/Footer";
+import Schedule from "./pages/schedule/Schedule";
+import {BrowserRouter, Route, Routes} from "react-router-dom";
 
 function App() {
   return (
-    <div className="App">
-        <Topbar />
-        <div className="container">
-            <Home />
+    <BrowserRouter>
+        <div className="App">
+            <Topbar />
+                <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/schedule" element={<Schedule />} />
+                </Routes>
+            <Footer />
         </div>
-    </div>
+    </BrowserRouter>
   );
 }
 

@@ -1,6 +1,6 @@
 import {config} from "../config";
 
-function getQueryParams(data) {
+export function getQueryParams(data) {
     let queryParams = ""
     if (data.groups?.length > 0) {
         queryParams += "groups=" + data.groups.join("&groups=") + "&"

@@ -1,12 +1,38 @@
-.calendar {
-  flex: 4;
-  margin-left: 10px;
+.home-container {
+  height: 100%;
+  background-color: #016028;
 }
 
-/* disable allDay row in calendar view as it is not implemented into library */
-.rbc-allday-cell {
-  display: none;
+.group-form {
+  position: absolute;
+  top: 30%;
+  left: 20%;
+
 }
-.rbc-time-view .rbc-header {
-  border-bottom: none;
+
+.group-form-label {
+  color: white;
+}
+
+.group-form-select {
+  width: 400px;
+  max-height: 200px;
+  color: white;
+  background-color: #006d2d;
+  border: 0;
+  border-right: 2px solid #015624;
+  border-bottom: 2px solid #015624;
+  font-size: 30px;
+  padding: 5px;
+  float: left;
+  font-weight: bold;
+}
+
+.group-form-submit-button {
+  height: 46px;
+  cursor: pointer;
+  background-color: #0e4c27;
+  border-radius: 5px;
+  border: 1px solid #145d31;
+  color: white;
 }

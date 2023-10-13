@@ -8,16 +8,15 @@ export default function CalendarEvent(props) {
     const rooms_with_no_lecturer = props.event.rooms.filter(room => {
         return !lecturer_rooms.includes(room.id);
     });
+    const group_string = props.event.groups.map((group) => group.name).join(', ')
 
     return <div className="rbc-custom-event">
         <div className="course-info-container">
             <div className="course-name">{props.event.course_name}</div>
-            <div className="course-type">{props.event.type}</div>
-        </div>
-        <div className="group-container">
-            {props.event.groups.map((group) =>
-                <div key={`group-name_${group.id}`} className="group-name">{group.name}</div>
-            )}
+            <div className="group-container">
+                <div className="course-type">{props.event.type}</div>
+                <div key="group-names" className="group-names" title={group_string}>{group_string}</div>
+            </div>
         </div>
         <div className="room-container">
             {props.event.lecturers.map((lecturer_obj) =>
@@ -36,4 +35,3 @@ export default function CalendarEvent(props) {
         </div>
     </div>
 }
-

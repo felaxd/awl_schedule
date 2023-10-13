@@ -3,6 +3,7 @@
   height: 100%;
   background-color: white;
   z-index: 999;
+  max-width: 30%;
 }
 
 .sidebar-description {

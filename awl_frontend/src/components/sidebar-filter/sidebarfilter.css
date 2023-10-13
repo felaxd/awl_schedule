@@ -2,6 +2,12 @@
   margin-top: 20px;
 }
 
+.filter-form-input-container {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 .filter-title {
   font-size: 13px;
   color: rgb(161, 148, 148);

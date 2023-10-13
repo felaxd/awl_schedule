@@ -2,28 +2,34 @@
 }
 
 .course-info-container {
+  margin-bottom: 5px;
 }
 
 .course-name {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .course-type {
-  font-size: 12px;
+  float: left;
+  font-size: 0.9vh;
+  margin-right: 10px;
 }
 
 .group-container {
-  margin-top: 5px;
-  max-height: 40%;
+  flex: 4;
 }
 
-.group-name {
-  font-size: 11px;
+.group-names {
+  margin-left: 10px;
+  font-size: 0.9vh;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .room-container {
-  width: 90%;
-  bottom: 0;
-  position: absolute;
   margin-bottom: 5px;
 }
 
@@ -32,7 +38,7 @@
 }
 
 .lecturer-name, .lecturer-room, .room-name {
-  font-size: 10px;
+  font-size: 0.4vw;
 }
 
 .lecturer-name {
