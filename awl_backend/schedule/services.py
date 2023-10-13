@@ -586,4 +586,14 @@ class ScheduleService:
             Schedule.objects.filter(id=schedule.id).update(progress=F("progress") + progress_step_par_day)
 
         Schedule.objects.filter(id=schedule.id).update(status="FINISHED")
+
+        schedule.refresh_from_db()
+        schedule.schedule_blocks.set(result["added_blocks"])
+        schedule.rooms.set(result["added_rooms"])
+        schedule.courses.set(result["added_courses"])
+        schedule.groups.set(result["added_groups"])
+        schedule.lecturers.set(result["added_lecturers"])
+        schedule.errors = result["errors"]
+        schedule.save()
+
         return result

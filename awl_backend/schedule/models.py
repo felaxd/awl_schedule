@@ -18,7 +18,14 @@ class Schedule(BaseDatabaseModel, TimestampMixin):
     year = models.IntegerField(default=timezone.now().year, blank=False)
     month = models.IntegerField(default=timezone.now().month, blank=False)
     worksheet_name = models.CharField(max_length=128, blank=False)
-    progress = models.IntegerField()
+    progress = models.IntegerField(blank=True, default=0)
+
+    errors = models.JSONField(default=list, blank=True)
+    schedule_blocks = models.ManyToManyField("ScheduleBlock", blank=True, related_name="schedules")
+    lecturers = models.ManyToManyField(Lecturer, blank=True, related_name="schedules")
+    groups = models.ManyToManyField(Group, blank=True, related_name="schedules")
+    rooms = models.ManyToManyField(Room, blank=True, related_name="schedules")
+    courses = models.ManyToManyField(Course, blank=True, related_name="schedules")
 
     def __str__(self) -> str:
         return self.name
@@ -28,9 +35,6 @@ class Schedule(BaseDatabaseModel, TimestampMixin):
 
 
 class ScheduleBlock(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
-    schedule = models.ForeignKey(
-        Schedule, on_delete=models.SET_NULL, related_name="schedule_blocks", null=True, blank=True
-    )
     is_public = models.BooleanField(default=False)
     course_name = models.CharField(max_length=128)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, related_name="schedule_blocks", null=True)
@@ -44,7 +48,7 @@ class ScheduleBlock(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
     rooms = models.ManyToManyField(Room, related_name="schedule_blocks", blank=True)
 
     def __str__(self) -> str:
-        return f"{self.start.date()} / {self.course_name}"
+        return f"{self.start.strftime('%d/%m/%Y %H:%M')} / {self.course_name}"
 
     class Meta:
         ordering = ("-created_at", "start")
