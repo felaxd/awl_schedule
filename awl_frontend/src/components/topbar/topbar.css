@@ -12,3 +12,22 @@
   float: left;
   display: table;
 }
+
+.topbar-login-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 115px;
+  text-align: center;
+  z-index: 999;
+  margin-right: 40px;
+}
+
+#topbar-login-button {
+  cursor: pointer;
+  background-color: #0e4c27;
+  border-radius: 0 0 10px 10px;
+  border: 1px solid #145d31;
+  color: white;
+  font-weight: bold;
+}
