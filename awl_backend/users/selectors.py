@@ -18,6 +18,10 @@ class GroupSelector:
     def all() -> QuerySet[Group]:
         return Group.objects.all()
 
+    @classmethod
+    def publicated(cls) -> QuerySet[Group]:
+        return cls.all().filter(is_public=True)
+
     @staticmethod
     def get_by_id(pk: int) -> Group:
         return Group.objects.get(id=pk)

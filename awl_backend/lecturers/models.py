@@ -9,6 +9,7 @@ class Lecturer(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
 	title = models.CharField(max_length=128, blank=True)
 	job_position = models.CharField(max_length=128, blank=True)
 	contact_email = models.CharField(max_length=128, blank=True)
+	is_public = models.BooleanField(default=False)
 
 	def __str__(self) -> str:
 		return " ".join([self.title, self.first_name, self.last_name])

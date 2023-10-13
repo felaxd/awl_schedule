@@ -86,6 +86,10 @@ class ScheduleAdmin(admin.ModelAdmin):
         schedule: Schedule = self.get_object(request, schedule_id)  # type: ignore
         if schedule:
             schedule.schedule_blocks.all().update(is_public=True)
+            schedule.lecturers.all().update(is_public=True)
+            schedule.rooms.all().update(is_public=True)
+            schedule.courses.all().update(is_public=True)
+            schedule.groups.all().update(is_public=True)
             schedule.status = "PUBLICATED"
             schedule.save()
             self.message_user(request, f"Opublikowano {schedule.name}!", level=messages.INFO)
@@ -101,6 +105,12 @@ class ScheduleAdmin(admin.ModelAdmin):
         schedule: Schedule = self.get_object(request, schedule_id)  # type: ignore
         if schedule:
             schedule.schedule_blocks.all().update(is_public=False)
+            schedule.lecturers.all().update(is_public=False)
+            schedule.rooms.all().update(is_public=False)
+            schedule.courses.all().update(is_public=False)
+            schedule.groups.all().update(is_public=False)
+            schedule.status = "FINISHED"
+            schedule.save()
             self.message_user(request, f"Cofnięto publickacje {schedule.name}!", level=messages.WARNING)
         return HttpResponseRedirect(
             reverse(

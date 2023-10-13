@@ -40,7 +40,7 @@ class GroupListView(GenericAPIView):
 
     def get(self, request: Request) -> Response:
         """Returns all groups"""
-        groups = GroupSelector.all().order_by("name")
+        groups = GroupSelector.publicated().order_by("name")
         return Response(self.get_serializer(groups, many=True).data, status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:

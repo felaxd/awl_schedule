@@ -12,6 +12,10 @@ class CourseSelector:
     def all() -> QuerySet[Course]:
         return Course.objects.all()
 
+    @classmethod
+    def publicated(cls) -> QuerySet[Course]:
+        return cls.all().filter(is_public=True)
+
     @staticmethod
     def get_by_id(pk: UUID) -> Course:
         return Course.objects.get(id=pk)

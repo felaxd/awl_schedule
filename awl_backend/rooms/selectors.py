@@ -11,6 +11,10 @@ class RoomSelector:
     def all() -> QuerySet[Room]:
         return Room.objects.all()
 
+    @classmethod
+    def publicated(cls) -> QuerySet[Room]:
+        return cls.all().filter(is_public=True)
+
     @staticmethod
     def get_by_id(pk: UUID) -> Room:
         return Room.objects.get(id=pk)

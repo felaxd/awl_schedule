@@ -10,6 +10,7 @@ class Course(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
     name = models.CharField(max_length=128, blank=False)
     groups = models.ManyToManyField(Group, through="GroupCourseThrough", related_name="courses")
     lecturers = models.ManyToManyField(Lecturer, through="LecturerCourseThrough", related_name="courses")
+    is_public = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return self.name

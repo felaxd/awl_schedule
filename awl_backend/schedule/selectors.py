@@ -13,6 +13,10 @@ class ScheduleBlockSelector:
         return ScheduleBlock.objects.all()
 
     @classmethod
+    def publicated(cls) -> QuerySet[ScheduleBlock]:
+        return cls.all().filter(is_public=True)
+
+    @classmethod
     def filtered(
         cls,
         date_from: Optional[date] = None,
@@ -21,7 +25,7 @@ class ScheduleBlockSelector:
         lecturers: Optional[List[UUID]] = None,
         rooms: Optional[List[UUID]] = None,
     ) -> QuerySet[ScheduleBlock]:
-        qs = cls.all()
+        qs = cls.publicated()
         if date_from:
             qs = qs.filter(start__date__gte=date_from)
         if date_to:

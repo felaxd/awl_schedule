@@ -18,7 +18,7 @@ class CourseListView(GenericAPIView):
 
     def get(self, request: Request) -> Response:
         """Returns list of courses"""
-        result = CourseSelector.all()
+        result = CourseSelector.publicated()
         return Response(self.get_serializer(result, many=True).data, status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:

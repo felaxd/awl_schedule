@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AbstractUser, Group as BaseGroup
+from django.db import models
+
 from common.models import BaseDatabaseModel, ModelDifferenceMixin, TimestampMixin
 
 
@@ -9,4 +11,5 @@ class User(AbstractUser, BaseDatabaseModel, ModelDifferenceMixin):
 
 
 class Group(BaseGroup, BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
-	pass
+	is_public = models.BooleanField(default=False)
+
