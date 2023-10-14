@@ -463,6 +463,7 @@ class ScheduleService:
     @transaction.atomic
     def update_schedule_from_excel(self, schedule: Schedule) -> Dict[str, Any]:
         result = {
+            "replaced_blocks": [],
             "added_blocks": [],
             "added_groups": [],
             "added_lecturers": [],
@@ -489,11 +490,12 @@ class ScheduleService:
 
             group_names = [group["name"] for group in day_schedule_info["groups"]]
             active_groups_in_schedule = Group.objects.filter(name__in=group_names)
-            deleted_schedule_blocks = ScheduleBlock.objects.filter(
+            replaced_schedule_blocks = ScheduleBlock.objects.filter(
                 groups__in=active_groups_in_schedule,
                 start__date=date,
                 end__date=date
-            ).delete()[1].get("schedule.ScheduleBlock", 0)
+            )
+            result["replaced_blocks"].extend(replaced_schedule_blocks)
 
             added_blocks = 0
             added_groups = 0
@@ -503,7 +505,6 @@ class ScheduleService:
             for _block in self.excel_schedule_service.get_schedule_for_single_day(day_schedule_info):
                 try:
                     schedule_block = ScheduleBlock(
-                        schedule=schedule,
                         is_public=False,
                         course_name=_block["name"],
                         course=None,
@@ -582,12 +583,13 @@ class ScheduleService:
                 "prowadzący": added_lecturers,
                 "kursy": added_courses
             }
-            log.debug(f"{date}: usunięto {deleted_schedule_blocks} / nowe {log_dict}")
+            log.debug(f"{date}: zamieniono {replaced_schedule_blocks.count()} / nowe {log_dict}")
             Schedule.objects.filter(id=schedule.id).update(progress=F("progress") + progress_step_par_day)
 
         Schedule.objects.filter(id=schedule.id).update(status="FINISHED")
 
         schedule.refresh_from_db()
+        schedule.replaced_schedule_blocks.set(result["replaced_blocks"])
         schedule.schedule_blocks.set(result["added_blocks"])
         schedule.rooms.set(result["added_rooms"])
         schedule.courses.set(result["added_courses"])
@@ -597,3 +599,31 @@ class ScheduleService:
         schedule.save()
 
         return result
+
+    @transaction.atomic
+    def publicate_schedule(self, schedule: Schedule) -> None:
+        if schedule.status not in ["FINISHED", "REVERTED"]:
+            raise ValidationError("Plan nie został pobrany z pliku")
+
+        schedule.replaced_schedule_blocks.update(is_public=False)
+        schedule.schedule_blocks.all().update(is_public=True)
+        schedule.lecturers.all().update(is_public=True)
+        schedule.rooms.all().update(is_public=True)
+        schedule.courses.all().update(is_public=True)
+        schedule.groups.all().update(is_public=True)
+        schedule.status = "PUBLICATED"
+        schedule.save()
+
+    @transaction.atomic
+    def revert_schedule_publication(self, schedule: Schedule) -> None:
+        if schedule.status != "PUBLICATED":
+            raise ValidationError("Plan nie został opublikowany")
+
+        schedule.replaced_schedule_blocks.update(is_public=True)
+        schedule.schedule_blocks.all().update(is_public=False)
+        schedule.lecturers.all().update(is_public=False)
+        schedule.rooms.all().update(is_public=False)
+        schedule.courses.all().update(is_public=False)
+        schedule.groups.all().update(is_public=False)
+        schedule.status = "REVERTED"
+        schedule.save()

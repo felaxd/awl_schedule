@@ -21,6 +21,7 @@ class ScheduleAdminForm(forms.ModelForm):
             "month": "Miesiąc na jaki jest plan",
             "worksheet_name": "Nazwa arkusza w pliku",
             "errors": "Wykryte błędy w pliku",
+            "replaced_schedule_blocks": "Bloczki które zostały zamienione",
             "schedule_blocks": "Wykryte nowe bloczki",
             "lecturers": "Wykryci nowi prowadzący",
             "rooms": "Wykryte nowe sale",
@@ -38,6 +39,7 @@ class ScheduleAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("name",)
     filter_horizontal = (
+        "replaced_schedule_blocks",
         "schedule_blocks",
         "lecturers",
         "groups",
@@ -52,7 +54,7 @@ class ScheduleAdmin(admin.ModelAdmin):
             actions.append(
                 f'<a class="button" href="{reverse("admin:schedule-init-excel", args=[obj.id])}">Pobierz z pliku</a>'
             )
-        elif obj.status == "FINISHED":
+        elif obj.status in ["FINISHED", "REVERTED"]:
             actions.append(
                 f'<a class="button" href="{reverse("admin:schedule-publicate", args=[obj.id])}">Opublikuj</a>'
             )
@@ -60,7 +62,7 @@ class ScheduleAdmin(admin.ModelAdmin):
             actions.append(
                 f'<a class="button" href="{reverse("admin:schedule-revert", args=[obj.id])}">Cofnij publikacje</a>'
             )
-        return format_html(*actions)
+        return format_html(" ".join(actions))
 
     schedule_actions.short_description = "akcje"
 
@@ -85,13 +87,7 @@ class ScheduleAdmin(admin.ModelAdmin):
     ) -> HttpResponse:
         schedule: Schedule = self.get_object(request, schedule_id)  # type: ignore
         if schedule:
-            schedule.schedule_blocks.all().update(is_public=True)
-            schedule.lecturers.all().update(is_public=True)
-            schedule.rooms.all().update(is_public=True)
-            schedule.courses.all().update(is_public=True)
-            schedule.groups.all().update(is_public=True)
-            schedule.status = "PUBLICATED"
-            schedule.save()
+            container().schedule_service.publicate_schedule(schedule)
             self.message_user(request, f"Opublikowano {schedule.name}!", level=messages.INFO)
         return HttpResponseRedirect(
             reverse(
@@ -104,13 +100,7 @@ class ScheduleAdmin(admin.ModelAdmin):
     ) -> HttpResponse:
         schedule: Schedule = self.get_object(request, schedule_id)  # type: ignore
         if schedule:
-            schedule.schedule_blocks.all().update(is_public=False)
-            schedule.lecturers.all().update(is_public=False)
-            schedule.rooms.all().update(is_public=False)
-            schedule.courses.all().update(is_public=False)
-            schedule.groups.all().update(is_public=False)
-            schedule.status = "FINISHED"
-            schedule.save()
+            container().schedule_service.revert_schedule_publication(schedule)
             self.message_user(request, f"Cofnięto publickacje {schedule.name}!", level=messages.WARNING)
         return HttpResponseRedirect(
             reverse(
@@ -147,7 +137,7 @@ class LecturerScheduleBlockThroughInline(admin.TabularInline):
 
 @admin.register(ScheduleBlock)
 class ScheduleBlockAdmin(admin.ModelAdmin):
-    list_display = ("course_name", "type", "start", "end", "get_groups", "get_lecturers", "created_at")
+    list_display = ("course_name", "type", "start", "end", "get_groups", "get_lecturers", "is_public", "created_at")
     list_filter = ("groups", "lecturers", "rooms")
     search_fields = ("course_name", "groups__name", "lecturers__first_name", "lecturers__last_name", "rooms__name")
     filter_horizontal = ("groups", "rooms")

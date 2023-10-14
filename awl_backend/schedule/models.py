@@ -21,6 +21,7 @@ class Schedule(BaseDatabaseModel, TimestampMixin):
     progress = models.IntegerField(blank=True, default=0)
 
     errors = models.JSONField(default=list, blank=True)
+    replaced_schedule_blocks = models.ManyToManyField("ScheduleBlock", blank=True, related_name="schedules_replaced")
     schedule_blocks = models.ManyToManyField("ScheduleBlock", blank=True, related_name="schedules")
     lecturers = models.ManyToManyField(Lecturer, blank=True, related_name="schedules")
     groups = models.ManyToManyField(Group, blank=True, related_name="schedules")
