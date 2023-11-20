@@ -45,6 +45,7 @@ class ScheduleBlockSerializer(serializers.ModelSerializer):
             "lecturers",
             "groups",
             "rooms",
+            "colour",
         )
 
 
@@ -63,4 +64,5 @@ class ScheduleBlockCreateSerializer(serializers.ModelSerializer):
             "lecturers",
             "groups",
             "rooms",
+            "colour",
         )

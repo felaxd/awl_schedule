@@ -59,15 +59,15 @@ class ScheduleAdmin(admin.ModelAdmin):
             return "-"
 
         actions = []
-        if obj.status == "NEW":
+        if obj.status != "PUBLICATED":
             actions.append(
                 f'<a class="button" href="{reverse("admin:schedule-init-excel", args=[obj.id])}">Pobierz z pliku</a>'
             )
-        elif obj.status in ["FINISHED", "REVERTED"]:
+        if obj.status in ["FINISHED", "REVERTED"]:
             actions.append(
                 f'<a class="button" href="{reverse("admin:schedule-publicate", args=[obj.id])}">Opublikuj</a>'
             )
-        elif obj.status == "PUBLICATED":
+        if obj.status == "PUBLICATED":
             actions.append(
                 f'<a class="button" href="{reverse("admin:schedule-revert", args=[obj.id])}">Cofnij publikacje</a>'
             )

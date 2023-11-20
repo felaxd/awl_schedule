@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from schedule.utils import get_current_year, get_current_month
 from users.models import Group, User
 from django.db import models
 from common.models import BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin
@@ -15,8 +16,8 @@ class Schedule(BaseDatabaseModel, TimestampMixin):
     status = models.CharField(max_length=32, default="NEW")
 
     file = models.FileField(upload_to="schedule/uploads/")
-    year = models.IntegerField(default=timezone.now().year, blank=False)
-    month = models.IntegerField(default=timezone.now().month, blank=False)
+    year = models.IntegerField(default=get_current_year, blank=False)
+    month = models.IntegerField(default=get_current_month, blank=False)
     worksheet_name = models.CharField(max_length=128, blank=False)
     progress = models.IntegerField(blank=True, default=0)
 
@@ -47,6 +48,7 @@ class ScheduleBlock(BaseDatabaseModel, TimestampMixin, ModelDifferenceMixin):
     )
     groups = models.ManyToManyField(Group, related_name="schedule_blocks")
     rooms = models.ManyToManyField(Room, related_name="schedule_blocks", blank=True)
+    colour = models.CharField(max_length=9, blank=True, help_text="format: #00000000 (ARGB)")
 
     def __str__(self) -> str:
         return f"{self.start.strftime('%d/%m/%Y %H:%M')} / {self.course_name}"

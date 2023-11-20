@@ -23,6 +23,7 @@ from lecturers.models import Lecturer
 from rooms.models import Room
 from schedule.consts import AMOUNT_OF_TIME_BLOCK_PER_DAY, HOUR_BLOCK_START_TIMESPANS, DEFAULT_MODULE_TYPE, \
     MODULE_TYPES_TUPLE
+from schedule.excel_colours import theme_and_tint_to_rgb
 from schedule.models import ScheduleBlock, Schedule, LecturerScheduleBlockThrough
 from schedule.selectors import ScheduleBlockSelector
 from users.models import User, Group
@@ -75,7 +76,8 @@ class ScheduleBlockService:
         type: str,
         lecturers: Optional[List[Dict[str, Union[Lecturer, Room]]]] = None,
         groups: Optional[List[Group]] = None,
-        rooms: Optional[List[Room]] = None
+        rooms: Optional[List[Room]] = None,
+        colour: Optional[str] = None,
     ) -> ScheduleBlock:
         """Creates schedule block"""
         schedule_block = ScheduleBlock(
@@ -84,6 +86,7 @@ class ScheduleBlockService:
             start=start,
             end=end,
             type=type,
+            colour=colour or "",
         )
         validate_user_permission(user, schedule_block.ADD_PERMISSION_CODENAME, raise_error=True)
         schedule_block.full_clean()
@@ -150,6 +153,7 @@ class ScheduleBlockService:
 
 @dataclass
 class ExcelScheduleService:
+    current_workbook = None
 
     @staticmethod
     def load_workbook(path: str) -> Workbook:
@@ -175,6 +179,7 @@ class ExcelScheduleService:
 
     def init_excel_worksheet(self, path: str, worksheet: str, year: int, month: int) -> Dict[str, Any]:
         wb = self.load_workbook(path)
+        self.current_workbook = wb
         ws = self.load_worksheet(wb, worksheet)
         schedule_days = []
         last_day_of_month = calendar.monthrange(year, month)[1]
@@ -311,6 +316,7 @@ class ExcelScheduleService:
             "lecturers": self.get_module_lecturers(worksheet, starting_cell, ending_cell),
             "rooms": self.get_module_rooms(worksheet, starting_cell, ending_cell),
             "groups": self.get_module_groups(single_day_schedule_info["groups"], starting_cell, ending_cell),
+            "colour": self.get_module_colour(starting_cell),
             "starting_cell": starting_cell,
             "ending_cell": ending_cell,
         }
@@ -320,7 +326,7 @@ class ExcelScheduleService:
     def get_module_range(self, single_day_schedule_info: Dict[str, Any], starting_cell: Cell) -> Tuple[Cell, Cell]:
         log.debug(f"Getting module range [starting cell: {starting_cell.coordinate}]")
         worksheet = single_day_schedule_info["worksheet"]
-        bg_colour = starting_cell.fill.fgColor.rgb
+        bg_colour = self.get_cell_colour(starting_cell)
 
         log.debug(f"Getting module last column")
         end_cell_column = starting_cell.column + 0
@@ -338,7 +344,8 @@ class ExcelScheduleService:
             if possible_end_of_module.border.right.style or possible_start_of_next_module.border.left.style:
                 break
 
-            if bg_colour != "00000000" and possible_start_of_next_module.fill.fgColor.rgb != bg_colour:
+            colour_to_check = self.get_cell_colour(possible_start_of_next_module)
+            if bg_colour != "00000000" and colour_to_check != bg_colour:
                 break
 
             end_cell_column += 1
@@ -359,7 +366,7 @@ class ExcelScheduleService:
             if possible_end_of_module.border.bottom.style or possible_start_of_next_module.border.top.style:
                 break
 
-            bg_colour_to_check = possible_start_of_next_module.fill.fgColor.rgb
+            bg_colour_to_check = self.get_cell_colour(possible_start_of_next_module)
             if bg_colour not in ["00000000", "FFFFFF00"] and bg_colour_to_check not in [bg_colour, "FFFFFF00"]:
                 break
 
@@ -457,6 +464,30 @@ class ExcelScheduleService:
             rooms.append(room_name)
         return rooms
 
+    def get_cell_colour(self, cell: Cell) -> str:
+        colour = "00000000"
+        if cell.fill.fgColor.type == "theme":
+            theme = cell.fill.fgColor.theme
+            tint = cell.fill.fgColor.tint
+            colour = theme_and_tint_to_rgb(self.current_workbook, theme, tint)
+        elif cell.fill.fgColor.type == "rgb":
+            colour = cell.fill.fgColor.rgb
+        return colour
+
+    def get_module_colour(self, starting_cell: Cell) -> str:
+        log.debug("Getting module colour")
+        try:
+            colour = self.get_cell_colour(starting_cell)
+            if len(colour) == 6:
+                return f"#00{colour}"
+            if len(colour) == 8:
+                return f"#{colour}"
+            log.warning(f"Wrong colour palette {colour} [{starting_cell.coordinate}]")
+            return ""
+        except Exception:
+            log.error(f"Wrong colour palette [{starting_cell.coordinate}]")
+            return ""
+
     @classmethod
     def find_lower_boundary_of_column(cls, worksheet: Worksheet, column: int) -> Cell:
         log.debug(f"Looking for lower boundary of column [{column}]")
@@ -513,17 +544,17 @@ class ScheduleService:
 
         progress_step_par_day = 80 / len(excel_schedule_info["schedule_days"])
         for day_schedule_info in excel_schedule_info["schedule_days"]:
-            date = day_schedule_info['date']
+            _date = day_schedule_info['date']
             if error := day_schedule_info.get("error", None):
-                log.error(f"{date}: bład ({error})")
+                log.error(f"{_date}: bład ({error})")
                 continue
 
             group_names = [group["name"] for group in day_schedule_info["groups"]]
             active_groups_in_schedule = Group.objects.filter(name__in=group_names)
             replaced_schedule_blocks = ScheduleBlock.objects.filter(
                 groups__in=active_groups_in_schedule,
-                start__date=date,
-                end__date=date
+                start__date=_date,
+                end__date=_date
             )
             result["replaced_blocks"].extend(replaced_schedule_blocks)
 
@@ -541,6 +572,7 @@ class ScheduleService:
                         start=_block["start"],
                         end=_block["end"],
                         type=_block["type"],
+                        colour=_block["colour"],
                     )
                     course, course_created = Course.objects.get_or_create(name=_block["name"])
                     if course_created:
@@ -613,10 +645,10 @@ class ScheduleService:
                 "prowadzący": added_lecturers,
                 "kursy": added_courses
             }
-            log.debug(f"{date}: zamieniono {replaced_schedule_blocks.count()} / nowe {log_dict}")
+            log.debug(f"{_date}: zamieniono {replaced_schedule_blocks.count()} / nowe {log_dict}")
             Schedule.objects.filter(id=schedule.id).update(progress=F("progress") + progress_step_par_day)
 
-        Schedule.objects.filter(id=schedule.id).update(status="FINISHED")
+        Schedule.objects.filter(id=schedule.id).update(progress=100, status="FINISHED")
 
         schedule.refresh_from_db()
         schedule.replaced_schedule_blocks.set(result["replaced_blocks"])
