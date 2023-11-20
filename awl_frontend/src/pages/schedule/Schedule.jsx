@@ -113,6 +113,7 @@ export default function Schedule() {
                     groups: block.groups,
                     type: block.type,
                     course_name: block.course_name,
+                    colour: block.colour,
                 }
             )));
         }
@@ -157,6 +158,10 @@ export default function Schedule() {
                   messages={messages}
                   components={{
                       event: CalendarEvent
+                  }}
+                  eventPropGetter={(event) => {
+                      const backgroundColor = event.colour.replace("#00", "#");
+                      return { style: { backgroundColor } }
                   }}
               />
           </div>
