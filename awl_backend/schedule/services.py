@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError
 from openpyxl.cell import Cell
 from openpyxl.reader.excel import load_workbook
-from openpyxl.styles.borders import DEFAULT_BORDER
+from openpyxl.styles.borders import Side
 from openpyxl.worksheet.worksheet import Worksheet
 
 from common.utils import django_log_action
@@ -182,7 +182,9 @@ class ExcelScheduleService:
             try:
                 schedule_days.append(self.get_single_day_schedule_info(ws, year, month, day))
             except ValidationError as ex:
-                schedule_days.append({"date": date(day=day, month=month, year=year), "error": f"{ex}"})
+                error = {"date": date(day=day, month=month, year=year), "error": f"{ex}"}
+                log.error(error)
+                schedule_days.append(error)
 
         if not schedule_days:
             raise ValidationError("Brak dni w arkuszu dla podenego miesiąca")
@@ -196,13 +198,17 @@ class ExcelScheduleService:
         }
 
     def get_single_day_schedule_info(self, worksheet: Worksheet, year: int, month: int, day: int) -> Dict[str, Any]:
-        date_cell = self.get_cell_with_value(worksheet, datetime(day=day, month=month, year=year), exact=True)
+        _date = datetime(day=day, month=month, year=year)
+        log.debug(f"Looking for day {_date.date()}")
+
+        date_cell = self.get_cell_with_value(worksheet, _date, exact=True)
 
         if not date_cell:
             raise ValidationError("Brak daty w arkuszu")
 
         starting_cell = self.get_cell(worksheet=worksheet, row=date_cell.row - 1, column=date_cell.column - 4)
         ending_cell = self.find_lower_boundary_of_column(worksheet, date_cell.column + 12)
+        log.debug({"starting_cell": starting_cell, "ending_cell": ending_cell})
 
         excluded_cells = []
 
@@ -237,19 +243,19 @@ class ExcelScheduleService:
                             if cell_to_exclude[0] not in excluded_cells:
                                 excluded_cells.append(cell_to_exclude[0])
                 else:
-                    groups.append(
-                        {
-                            "name": group_name,
-                            "start_row": last_group_start,
-                            "end_row": cell.row
-                        }
-                    )
+                    _group = {
+                        "name": group_name,
+                        "start_row": last_group_start,
+                        "end_row": cell.row
+                    }
+                    log.debug(f"Group found: {_group}")
+                    groups.append(_group)
                 group_name_parts = []
                 last_group_start = cell.row + 1
 
         return {
             "worksheet": worksheet,
-            "date": date(day=day, month=month, year=year),
+            "date": _date.date(),
             "starting_cell": starting_cell,
             "ending_cell": ending_cell,
             "groups": groups,
@@ -269,8 +275,10 @@ class ExcelScheduleService:
             while current_row < end_row:
                 cell = self.get_cell(worksheet, row=current_row, column=schedule_starting_column + schedule_hour)
                 if cell in single_day_schedule_info["excluded_cells"]:
+                    log.debug(f"Current cell: {cell.coordinate} excluded")
                     current_row += 1
                     continue
+                log.debug(f"Current cell: {cell.coordinate}")
 
                 if cell.fill.fgColor.rgb != "00000000" or cell.value:
                     schedule_block = self.get_module_info(single_day_schedule_info, cell)
@@ -290,13 +298,14 @@ class ExcelScheduleService:
         return schedule
 
     def get_module_info(self, single_day_schedule_info: Dict[str, Any], starting_cell: Cell) -> Dict[str, Any]:
+        log.debug(f"Getting module info for cell: {starting_cell.coordinate}")
         worksheet: Worksheet = single_day_schedule_info["worksheet"]
         starting_cell, ending_cell = self.get_module_range(single_day_schedule_info, starting_cell)
         start, end = self.get_module_times(single_day_schedule_info, starting_cell, ending_cell)
-
-        return {
-            "name": starting_cell.value,
-            "type": self.get_module_type_from_name(starting_cell.value),
+        name = self.get_module_name(starting_cell)
+        _module_info = {
+            "name": name,
+            "type": self.get_module_type_from_name(name),
             "start": start,
             "end": end,
             "lecturers": self.get_module_lecturers(worksheet, starting_cell, ending_cell),
@@ -305,41 +314,27 @@ class ExcelScheduleService:
             "starting_cell": starting_cell,
             "ending_cell": ending_cell,
         }
+        log.debug(f"Module info: {_module_info}")
+        return _module_info
 
     def get_module_range(self, single_day_schedule_info: Dict[str, Any], starting_cell: Cell) -> Tuple[Cell, Cell]:
+        log.debug(f"Getting module range [starting cell: {starting_cell.coordinate}]")
         worksheet = single_day_schedule_info["worksheet"]
         bg_colour = starting_cell.fill.fgColor.rgb
 
-        end_cell_row = starting_cell.row + 1
-        while True:
-            if end_cell_row > single_day_schedule_info["ending_cell"].row:
-                raise ValidationError("Błąd podczas próby pobrania wielkości modułu")
-
-            possible_end_of_module = self.get_cell(
-                worksheet, row=end_cell_row, column=starting_cell.column
-            )
-            possible_start_of_next_module = self.get_cell(
-                worksheet, row=possible_end_of_module.row + 1, column=starting_cell.column
-            )
-            if possible_end_of_module.border.bottom.style or possible_start_of_next_module.border.top.style:
-                break
-
-            if bg_colour != "00000000" and possible_start_of_next_module.fill.fgColor.rgb != bg_colour:
-                break
-
-            end_cell_row += 1
-
+        log.debug(f"Getting module last column")
         end_cell_column = starting_cell.column + 0
         while True:
             if end_cell_column > single_day_schedule_info["ending_cell"].column:
                 raise ValidationError("Błąd podczas próby pobrania wielkości modułu")
 
             possible_end_of_module = self.get_cell(
-                worksheet, row=end_cell_row, column=end_cell_column
+                worksheet, row=starting_cell.row, column=end_cell_column
             )
             possible_start_of_next_module = self.get_cell(
-                worksheet, row=end_cell_row, column=possible_end_of_module.column + 1
+                worksheet, row=starting_cell.row, column=possible_end_of_module.column + 1
             )
+            log.debug(f"Current cell: {possible_end_of_module.coordinate}")
             if possible_end_of_module.border.right.style or possible_start_of_next_module.border.left.style:
                 break
 
@@ -348,10 +343,40 @@ class ExcelScheduleService:
 
             end_cell_column += 1
 
+        log.debug(f"Getting module last row")
+        end_cell_row = starting_cell.row + 1
+        while True:
+            if end_cell_row > single_day_schedule_info["ending_cell"].row:
+                raise ValidationError(f"Błąd podczas próby pobrania wielkości modułu [{starting_cell.coordinate}]")
+
+            possible_end_of_module = self.get_cell(
+                worksheet, row=end_cell_row, column=starting_cell.column
+            )
+            possible_start_of_next_module = self.get_cell(
+                worksheet, row=possible_end_of_module.row + 1, column=starting_cell.column
+            )
+            log.debug(f"Current cell: {possible_end_of_module.coordinate}")
+            if possible_end_of_module.border.bottom.style or possible_start_of_next_module.border.top.style:
+                break
+
+            bg_colour_to_check = possible_start_of_next_module.fill.fgColor.rgb
+            if bg_colour not in ["00000000", "FFFFFF00"] and bg_colour_to_check not in [bg_colour, "FFFFFF00"]:
+                break
+
+            end_cell_row += 1
+
         return starting_cell, self.get_cell(worksheet, row=end_cell_row, column=end_cell_column)
 
     @classmethod
+    def get_module_name(cls, starting_cell: Cell) -> str:
+        log.debug("Getting module name")
+        if name := starting_cell.value:
+            return name
+        raise ValidationError(f"Nie można pobrać nazwy modułu [{starting_cell.coordinate}]")
+
+    @classmethod
     def get_module_type_from_name(cls, module_name: Optional[str]) -> str:
+        log.debug("Getting module type from name")
         if module_name:
             module_name = module_name.replace(" ", "")
             for type_tuple in MODULE_TYPES_TUPLE:
@@ -364,6 +389,7 @@ class ExcelScheduleService:
     def get_module_times(
         cls, single_day_schedule_info: Dict[str, Any], starting_cell: Cell, ending_cell: Cell
     ) -> Tuple[datetime, datetime]:
+        log.debug("Getting module times")
         schedule_starting_cell: Cell = single_day_schedule_info["starting_cell"]
         start_hour = starting_cell.column - schedule_starting_cell.column
         end_hour = start_hour + (ending_cell.column - starting_cell.column)
@@ -374,6 +400,7 @@ class ExcelScheduleService:
 
     @classmethod
     def get_module_groups(cls, group_list: List[Dict[str, Any]], starting_cell: Cell, ending_cell: Cell) -> List[str]:
+        log.debug("Getting module groups")
         filtered_groups = filter(
             lambda g: g["start_row"] <= ending_cell.row and g["end_row"] >= starting_cell.row, group_list
         )
@@ -381,6 +408,7 @@ class ExcelScheduleService:
 
     @classmethod
     def get_module_lecturers(cls, worksheet: Worksheet, starting_cell: Cell, ending_cell: Cell) -> List[Dict[str, Any]]:
+        log.debug("Getting module lecturers")
         lecturers = []
         lecturer_rows = worksheet.iter_rows(
             min_col=starting_cell.column,
@@ -391,10 +419,10 @@ class ExcelScheduleService:
         for row in lecturer_rows:
             cell = row[0]
             lecturer_name: Optional[str] = f"{cell.value or ''}"
+            lecturer_name = lecturer_name.replace("/", ",")
             if not lecturer_name or any(char.isdigit() for char in lecturer_name):
                 return lecturers
 
-            lecturer_name.replace("/", ",")
             for lecturer in lecturer_name.split(","):
                 # pobieramy salę przypisaną do prowadzącego (sala obok jego nazwiska)
                 # lub jeśli nie ma jej podanej bierzemy domyślną salę z dolnego prawego rogu bloku
@@ -413,6 +441,7 @@ class ExcelScheduleService:
 
     @classmethod
     def get_module_rooms(cls, worksheet: Worksheet, starting_cell: Cell, ending_cell: Cell) -> List[str]:
+        log.debug("Getting module rooms")
         rooms = []
         room_rows = worksheet.iter_rows(
             min_col=ending_cell.column,
@@ -430,9 +459,10 @@ class ExcelScheduleService:
 
     @classmethod
     def find_lower_boundary_of_column(cls, worksheet: Worksheet, column: int) -> Cell:
+        log.debug(f"Looking for lower boundary of column [{column}]")
         for row in range(worksheet.max_row, 1, -1):
             cell = cls.get_cell(worksheet=worksheet, row=row, column=column)
-            if cell.border != DEFAULT_BORDER:
+            if cell.border.top != Side() or cell.border.bottom != Side():
                 return cell
 
     @classmethod

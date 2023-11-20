@@ -46,9 +46,18 @@ class ScheduleAdmin(admin.ModelAdmin):
         "rooms",
         "courses",
     )
-    readonly_fields = ("status", "progress", "schedule_actions",)
+    create_readonly_fields = ("status", "progress",)
+    edit_readonly_fields = ("status", "progress", "schedule_actions",)
+
+    def get_readonly_fields(self, request: Any, obj: Schedule = None) -> Any:
+        if obj:
+            return self.edit_readonly_fields
+        return self.create_readonly_fields
 
     def schedule_actions(self, obj: Schedule) -> str:
+        if not obj:
+            return "-"
+
         actions = []
         if obj.status == "NEW":
             actions.append(

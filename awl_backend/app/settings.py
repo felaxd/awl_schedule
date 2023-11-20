@@ -17,6 +17,21 @@ env = environ.Env()
 SECRET_KEY = env("SECRET_KEY")
 # SECURITY WARNING: don"t run with debug turned on in production!
 DEBUG = env.bool("DEBUG", True)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'handlers': ['console'],
+        },
+    },
+}
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 CORS_ALLOW_ALL_ORIGINS = True
