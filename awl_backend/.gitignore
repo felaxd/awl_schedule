@@ -8,4 +8,4 @@ venv/*
 schedule/uploads/*
 
 # test file
-test.py
+manualtest.py
