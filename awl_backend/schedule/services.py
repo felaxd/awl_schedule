@@ -182,16 +182,18 @@ class ExcelScheduleService:
         self.current_workbook = wb
         ws = self.load_worksheet(wb, worksheet)
         schedule_days = []
+        added_days = 0
         last_day_of_month = calendar.monthrange(year, month)[1]
         for day in range(1, last_day_of_month):
             try:
                 schedule_days.append(self.get_single_day_schedule_info(ws, year, month, day))
+                added_days += 1
             except ValidationError as ex:
                 error = {"date": date(day=day, month=month, year=year), "error": f"{ex}"}
-                log.error(error)
+                log.warning(error)
                 schedule_days.append(error)
 
-        if not schedule_days:
+        if not added_days:
             raise ValidationError("Brak dni w arkuszu dla podenego miesiąca")
 
         return {
@@ -285,7 +287,7 @@ class ExcelScheduleService:
                     continue
                 log.debug(f"Current cell: {cell.coordinate}")
 
-                if cell.fill.fgColor.rgb != "00000000" or cell.value:
+                if cell.value:
                     schedule_block = self.get_module_info(single_day_schedule_info, cell)
                     schedule.append(schedule_block)
                     cells_to_exclude = worksheet.iter_cols(
@@ -351,7 +353,7 @@ class ExcelScheduleService:
             end_cell_column += 1
 
         log.debug(f"Getting module last row")
-        end_cell_row = starting_cell.row + 1
+        end_cell_row = starting_cell.row + 2
         while True:
             if end_cell_row > single_day_schedule_info["ending_cell"].row:
                 raise ValidationError(f"Błąd podczas próby pobrania wielkości modułu [{starting_cell.coordinate}]")
@@ -370,7 +372,7 @@ class ExcelScheduleService:
             if bg_colour not in ["00000000", "FFFFFF00"] and bg_colour_to_check not in [bg_colour, "FFFFFF00"]:
                 break
 
-            end_cell_row += 1
+            end_cell_row += 3
 
         return starting_cell, self.get_cell(worksheet, row=end_cell_row, column=end_cell_column)
 
@@ -378,7 +380,7 @@ class ExcelScheduleService:
     def get_module_name(cls, starting_cell: Cell) -> str:
         log.debug("Getting module name")
         if name := starting_cell.value:
-            return name
+            return str(name).strip()
         raise ValidationError(f"Nie można pobrać nazwy modułu [{starting_cell.coordinate}]")
 
     @classmethod
