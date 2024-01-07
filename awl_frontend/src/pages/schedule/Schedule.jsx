@@ -159,10 +159,10 @@ export default function Schedule() {
                   components={{
                       event: CalendarEvent
                   }}
-                  eventPropGetter={(event) => {
-                      const backgroundColor = event.colour.replace("#00", "#");
-                      return { style: { backgroundColor } }
-                  }}
+                  // eventPropGetter={(event) => {
+                  //     const backgroundColor = event.colour.replace("#00", "#");
+                  //     return { style: { backgroundColor } }
+                  // }}
               />
           </div>
     </div>
