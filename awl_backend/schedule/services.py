@@ -238,7 +238,7 @@ class ExcelScheduleService:
                 group_name_parts = list(filter(None, group_name_parts))
                 group_name = " ".join(group_name_parts)
                 parsed_group_name = group_name.replace(" ", "")
-                if len(parsed_group_name) <= 1:
+                if len(parsed_group_name) <= 2:
                     for row_in_last_range in range(last_group_start, cell.row + 1):
                         cells_to_exclude = worksheet.iter_cols(
                             min_col=starting_cell.column,
@@ -548,7 +548,9 @@ class ScheduleService:
         for day_schedule_info in excel_schedule_info["schedule_days"]:
             _date = day_schedule_info['date']
             if error := day_schedule_info.get("error", None):
-                log.error(f"{_date}: bład ({error})")
+                ex = f"{_date}: bład ({error})"
+                log.error(ex)
+                result["errors"].append(ex)
                 continue
 
             group_names = [group["name"] for group in day_schedule_info["groups"]]
@@ -556,7 +558,8 @@ class ScheduleService:
             replaced_schedule_blocks = ScheduleBlock.objects.filter(
                 groups__in=active_groups_in_schedule,
                 start__date=_date,
-                end__date=_date
+                end__date=_date,
+                is_public=True,
             )
             result["replaced_blocks"].extend(replaced_schedule_blocks)
 
@@ -630,6 +633,8 @@ class ScheduleService:
                     added_blocks += 1
                     result["added_blocks"].append(schedule_block)
                     django_log_action(user=schedule.creator, obj=schedule_block, action_flag=ADDITION)
+                except ValidationError as ex:
+                    result["errors"].append(f"{ex}")
                 except IntegrityError:
                     result["errors"].append(
                         f"{_block['starting_cell'].coordinate}:{_block['ending_cell'].coordinate} Błąd odczytu wagonika"
